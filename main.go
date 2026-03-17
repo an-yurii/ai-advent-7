@@ -1,0 +1,136 @@
+package main
+
+import (
+	"flag"
+	"fmt"
+	"io"
+	"log"
+	"os"
+	"strings"
+)
+
+func main() {
+	// Common flags
+	prompt := flag.String("p", "", "Prompt to send to LLM")
+	model := flag.String("m", "", "Model to use (default based on API)")
+	apiKey := flag.String("k", "", "API key (default from environment)")
+	baseURL := flag.String("u", "", "API base URL (default based on API)")
+	apiProvider := flag.String("a", "openai", "API provider: openai, gigachat")
+
+	// Token retrieval flags
+	getToken := flag.Bool("get-token", false, "Retrieve access token for GigaChat (requires client-id and client-secret)")
+	clientID := flag.String("client-id", "", "Client ID for OAuth2 token retrieval")
+	clientSecret := flag.String("client-secret", "", "Client secret for OAuth2 token retrieval")
+	tokenURL := flag.String("token-url", "https://ngw.devices.sberbank.ru:9443/api/v2/oauth", "OAuth2 token endpoint URL")
+
+	flag.Parse()
+
+	// If get-token mode, retrieve token and exit
+	if *getToken {
+		if *clientID == "" || *clientSecret == "" {
+			log.Fatal("Client ID and client secret are required for token retrieval. Use -client-id and -client-secret.")
+		}
+		token, err := GetGigaChatAccessToken(*clientID, *clientSecret, *tokenURL)
+		if err != nil {
+			log.Fatalf("Failed to retrieve token: %v", err)
+		}
+		fmt.Println(token)
+		return
+	}
+
+	// Normal chat mode
+	// Set defaults based on provider
+	if *baseURL == "" {
+		switch *apiProvider {
+		case "openai":
+			*baseURL = "https://api.openai.com/v1/chat/completions"
+		case "gigachat":
+			*baseURL = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions"
+		default:
+			log.Fatalf("Unknown API provider: %s", *apiProvider)
+		}
+	}
+	if *model == "" {
+		switch *apiProvider {
+		case "openai":
+			*model = "gpt-3.5-turbo"
+		case "gigachat":
+			*model = "GigaChat"
+		}
+	}
+
+	if *prompt == "" {
+		// If no flag, try to read from stdin
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeCharDevice) == 0 {
+			// stdin is piped
+			data, err := io.ReadAll(os.Stdin)
+			if err == nil && len(data) > 0 {
+				*prompt = string(data)
+			}
+		}
+		if *prompt == "" {
+			printUsage()
+			os.Exit(1)
+		}
+	}
+
+	key := *apiKey
+	if key == "" {
+		key = getAPIKeyFromEnv(*apiProvider)
+		if key == "" {
+			log.Fatal("API key not provided. Set appropriate environment variable or use -k flag.")
+		}
+	}
+
+	client := NewLLMClient(key, *baseURL, *model)
+	fmt.Printf("Sending request to %s with model %s...\n", *baseURL, *model)
+	response, err := client.SendRequest(*prompt)
+	if err != nil {
+		log.Fatalf("Error: %v\n", err)
+	}
+
+	fmt.Println("\n--- Response ---")
+	fmt.Println(response)
+}
+
+func printUsage() {
+	fmt.Println("Usage: llm-api-client -p \"Your prompt\"")
+	fmt.Println("Or pipe prompt via stdin: echo \"Hello\" | llm-api-client")
+	fmt.Println("\nOptions:")
+	flag.PrintDefaults()
+	fmt.Println("\nEnvironment variables:")
+	fmt.Println("  OPENAI_API_KEY    API key for OpenAI")
+	fmt.Println("  GIGACHAT_API_KEY  API key for GigaChat")
+	fmt.Println("  GIGACHAT_CLIENT_ID     Client ID for GigaChat OAuth (optional)")
+	fmt.Println("  GIGACHAT_CLIENT_SECRET Client secret for GigaChat OAuth (optional)")
+	fmt.Println("\nToken retrieval:")
+	fmt.Println("  llm-api-client -get-token -client-id <id> -client-secret <secret>")
+}
+
+// getAPIKeyFromEnv returns API key based on provider.
+func getAPIKeyFromEnv(provider string) string {
+	switch strings.ToLower(provider) {
+	case "openai":
+		return os.Getenv("OPENAI_API_KEY")
+	case "gigachat":
+		// First try direct API key
+		if key := os.Getenv("GIGACHAT_API_KEY"); key != "" {
+			return key
+		}
+		// Otherwise try to get token via client credentials
+		clientID := os.Getenv("GIGACHAT_CLIENT_ID")
+		clientSecret := os.Getenv("GIGACHAT_CLIENT_SECRET")
+		if clientID != "" && clientSecret != "" {
+			token, err := GetGigaChatAccessToken(clientID, clientSecret, "")
+			if err != nil {
+				log.Printf("Warning: failed to obtain token: %v", err)
+				return ""
+			}
+			return token
+		}
+		return ""
+	default:
+		return ""
+	}
+}
