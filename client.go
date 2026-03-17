@@ -47,6 +47,7 @@ type ChatRequest struct {
 	Stream           bool            `json:"stream,omitempty"`
 	NumChoices       *int            `json:"n,omitempty"`
 	RepetitionPenalty *float64       `json:"repetition_penalty,omitempty"`
+	Stop             []string        `json:"stop,omitempty"`
 }
 
 // ResponseFormat defines the format of the response.
@@ -134,6 +135,13 @@ func WithNumChoices(n int) RequestOption {
 func WithRepetitionPenalty(penalty float64) RequestOption {
 	return func(req *ChatRequest) {
 		req.RepetitionPenalty = &penalty
+	}
+}
+
+// WithStop sets the stop sequences.
+func WithStop(stop []string) RequestOption {
+	return func(req *ChatRequest) {
+		req.Stop = stop
 	}
 }
 
