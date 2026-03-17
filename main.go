@@ -17,6 +17,13 @@ func main() {
 	baseURL := flag.String("u", "", "API base URL (default based on API)")
 	apiProvider := flag.String("a", "openai", "API provider: openai, gigachat")
 
+	// Formatting flags
+	systemPrompt := flag.String("system", "", "System prompt to set behavior/format")
+	responseFormat := flag.String("format", "", "Response format: json, text (default)")
+	temperature := flag.Float64("temp", 0.0, "Temperature for generation (0.0 to 2.0, 0.0 means default)")
+	maxTokens := flag.Int("max-tokens", 0, "Maximum tokens in response (0 means default)")
+	topP := flag.Float64("top-p", 0.0, "Top-p sampling (0.0 to 1.0, 0.0 means default)")
+
 	// Token retrieval flags
 	getToken := flag.Bool("get-token", false, "Retrieve access token for GigaChat (requires client-id and client-secret)")
 	clientID := flag.String("client-id", "", "Client ID for OAuth2 token retrieval")
@@ -85,7 +92,26 @@ func main() {
 
 	client := NewLLMClient(key, *baseURL, *model)
 	fmt.Printf("Sending request to %s with model %s...\n", *baseURL, *model)
-	response, err := client.SendRequest(*prompt)
+
+	// Build request options
+	var opts []RequestOption
+	if *systemPrompt != "" {
+		opts = append(opts, WithSystemMessage(*systemPrompt))
+	}
+	if *responseFormat == "json" {
+		opts = append(opts, WithJSONResponseFormat())
+	}
+	if *temperature > 0.0 {
+		opts = append(opts, WithTemperature(*temperature))
+	}
+	if *maxTokens > 0 {
+		opts = append(opts, WithMaxTokens(*maxTokens))
+	}
+	if *topP > 0.0 {
+		opts = append(opts, WithTopP(*topP))
+	}
+
+	response, err := client.SendRequest(*prompt, opts...)
 	if err != nil {
 		log.Fatalf("Error: %v\n", err)
 	}

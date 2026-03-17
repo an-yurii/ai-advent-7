@@ -38,8 +38,18 @@ func NewLLMClient(apiKey, baseURL, model string) *LLMClient {
 
 // ChatRequest represents the request payload.
 type ChatRequest struct {
-	Model    string    `json:"model"`
-	Messages []Message `json:"messages"`
+	Model          string          `json:"model"`
+	Messages       []Message       `json:"messages"`
+	ResponseFormat *ResponseFormat `json:"response_format,omitempty"`
+	Temperature    *float64        `json:"temperature,omitempty"`
+	MaxTokens      *int            `json:"max_tokens,omitempty"`
+	TopP           *float64        `json:"top_p,omitempty"`
+	Stream         bool            `json:"stream,omitempty"`
+}
+
+// ResponseFormat defines the format of the response.
+type ResponseFormat struct {
+	Type string `json:"type"`
 }
 
 // Message represents a single message in the conversation.
@@ -65,13 +75,65 @@ type APIError struct {
 	Message string `json:"message"`
 }
 
+// RequestOption defines a function type to modify ChatRequest.
+type RequestOption func(*ChatRequest)
+
+// WithSystemMessage adds a system message to the request.
+func WithSystemMessage(content string) RequestOption {
+	return func(req *ChatRequest) {
+		// Insert system message at the beginning of messages
+		req.Messages = append([]Message{{Role: "system", Content: content}}, req.Messages...)
+	}
+}
+
+// WithJSONResponseFormat sets the response format to JSON.
+func WithJSONResponseFormat() RequestOption {
+	return func(req *ChatRequest) {
+		req.ResponseFormat = &ResponseFormat{Type: "json_object"}
+	}
+}
+
+// WithTemperature sets the temperature parameter.
+func WithTemperature(temp float64) RequestOption {
+	return func(req *ChatRequest) {
+		req.Temperature = &temp
+	}
+}
+
+// WithMaxTokens sets the max tokens parameter.
+func WithMaxTokens(tokens int) RequestOption {
+	return func(req *ChatRequest) {
+		req.MaxTokens = &tokens
+	}
+}
+
+// WithTopP sets the top_p parameter.
+func WithTopP(topP float64) RequestOption {
+	return func(req *ChatRequest) {
+		req.TopP = &topP
+	}
+}
+
+// WithStream enables or disables streaming.
+func WithStream(stream bool) RequestOption {
+	return func(req *ChatRequest) {
+		req.Stream = stream
+	}
+}
+
 // SendRequest sends a chat request to the LLM API and returns the response.
-func (c *LLMClient) SendRequest(prompt string) (string, error) {
+// It accepts optional RequestOptions to customize the request.
+func (c *LLMClient) SendRequest(prompt string, opts ...RequestOption) (string, error) {
 	reqBody := ChatRequest{
 		Model: c.Model,
 		Messages: []Message{
 			{Role: "user", Content: prompt},
 		},
+	}
+
+	// Apply all options
+	for _, opt := range opts {
+		opt(&reqBody)
 	}
 
 	jsonData, err := json.Marshal(reqBody)
