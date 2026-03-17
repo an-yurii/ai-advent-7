@@ -38,13 +38,15 @@ func NewLLMClient(apiKey, baseURL, model string) *LLMClient {
 
 // ChatRequest represents the request payload.
 type ChatRequest struct {
-	Model          string          `json:"model"`
-	Messages       []Message       `json:"messages"`
-	ResponseFormat *ResponseFormat `json:"response_format,omitempty"`
-	Temperature    *float64        `json:"temperature,omitempty"`
-	MaxTokens      *int            `json:"max_tokens,omitempty"`
-	TopP           *float64        `json:"top_p,omitempty"`
-	Stream         bool            `json:"stream,omitempty"`
+	Model            string          `json:"model"`
+	Messages         []Message       `json:"messages"`
+	ResponseFormat   *ResponseFormat `json:"response_format,omitempty"`
+	Temperature      *float64        `json:"temperature,omitempty"`
+	MaxTokens        *int            `json:"max_tokens,omitempty"`
+	TopP             *float64        `json:"top_p,omitempty"`
+	Stream           bool            `json:"stream,omitempty"`
+	NumChoices       *int            `json:"n,omitempty"`
+	RepetitionPenalty *float64       `json:"repetition_penalty,omitempty"`
 }
 
 // ResponseFormat defines the format of the response.
@@ -60,8 +62,8 @@ type Message struct {
 
 // ChatResponse represents the response from the API.
 type ChatResponse struct {
-	ID      string   `json:"id"`
-	Choices []Choice `json:"choices"`
+	ID      string    `json:"id"`
+	Choices []Choice  `json:"choices"`
 	Error   *APIError `json:"error,omitempty"`
 }
 
@@ -118,6 +120,20 @@ func WithTopP(topP float64) RequestOption {
 func WithStream(stream bool) RequestOption {
 	return func(req *ChatRequest) {
 		req.Stream = stream
+	}
+}
+
+// WithNumChoices sets the number of response choices (n).
+func WithNumChoices(n int) RequestOption {
+	return func(req *ChatRequest) {
+		req.NumChoices = &n
+	}
+}
+
+// WithRepetitionPenalty sets the repetition penalty parameter.
+func WithRepetitionPenalty(penalty float64) RequestOption {
+	return func(req *ChatRequest) {
+		req.RepetitionPenalty = &penalty
 	}
 }
 

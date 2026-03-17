@@ -23,6 +23,8 @@ func main() {
 	temperature := flag.Float64("temp", 0.0, "Temperature for generation (0.0 to 2.0, 0.0 means default)")
 	maxTokens := flag.Int("max-tokens", 0, "Maximum tokens in response (0 means default)")
 	topP := flag.Float64("top-p", 0.0, "Top-p sampling (0.0 to 1.0, 0.0 means default)")
+	numChoices := flag.Int("n", 1, "Number of response choices (default 1)")
+	repetitionPenalty := flag.Float64("repetition-penalty", 0.0, "Repetition penalty (1.0 means no penalty, >1.0 reduces repetition)")
 
 	// Token retrieval flags
 	getToken := flag.Bool("get-token", false, "Retrieve access token for GigaChat (requires client-id and client-secret)")
@@ -109,6 +111,12 @@ func main() {
 	}
 	if *topP > 0.0 {
 		opts = append(opts, WithTopP(*topP))
+	}
+	if *numChoices > 1 {
+		opts = append(opts, WithNumChoices(*numChoices))
+	}
+	if *repetitionPenalty > 0.0 {
+		opts = append(opts, WithRepetitionPenalty(*repetitionPenalty))
 	}
 
 	response, err := client.SendRequest(*prompt, opts...)
