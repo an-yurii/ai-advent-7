@@ -19,6 +19,7 @@ func main() {
 
 	// Formatting flags
 	systemPrompt := flag.String("system", "", "System prompt to set behavior/format")
+	systemFile := flag.String("system-file", "", "Path to a file containing system prompt (overrides -system)")
 	responseFormat := flag.String("format", "", "Response format: json, text (default)")
 	temperature := flag.Float64("temp", 0.0, "Temperature for generation (0.0 to 2.0, 0.0 means default)")
 	maxTokens := flag.Int("max-tokens", 0, "Maximum tokens in response (0 means default)")
@@ -98,8 +99,19 @@ func main() {
 
 	// Build request options
 	var opts []RequestOption
-	if *systemPrompt != "" {
-		opts = append(opts, WithSystemMessage(*systemPrompt))
+	// Determine system prompt: file overrides direct string
+	systemContent := ""
+	if *systemFile != "" {
+		content, err := readFileContent(*systemFile)
+		if err != nil {
+			log.Fatalf("Failed to read system prompt file: %v", err)
+		}
+		systemContent = content
+	} else if *systemPrompt != "" {
+		systemContent = *systemPrompt
+	}
+	if systemContent != "" {
+		opts = append(opts, WithSystemMessage(systemContent))
 	}
 	if *responseFormat == "json" {
 		opts = append(opts, WithJSONResponseFormat())
@@ -155,6 +167,15 @@ func printUsage() {
 	fmt.Println("  GIGACHAT_CLIENT_SECRET Client secret for GigaChat OAuth (optional)")
 	fmt.Println("\nToken retrieval:")
 	fmt.Println("  llm-api-client -get-token -client-id <id> -client-secret <secret>")
+}
+
+// readFileContent reads the entire content of a file and returns it as a string.
+func readFileContent(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to read file %s: %w", path, err)
+	}
+	return string(data), nil
 }
 
 // getAPIKeyFromEnv returns API key based on provider.
