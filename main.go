@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -153,12 +154,14 @@ func main() {
 		}
 	}
 
+	start := time.Now()
 	response, err := client.SendRequest(*prompt, opts...)
+	duration := time.Since(start)
 	if err != nil {
 		log.Fatalf("Error: %v\n", err)
 	}
 
-	fmt.Println("\n--- Response ---")
+	fmt.Printf("\n--- Response --- (%d мс)\n", duration.Milliseconds())
 	fmt.Println(response)
 }
 
