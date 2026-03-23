@@ -38,16 +38,16 @@ func NewLLMClient(apiKey, baseURL, model string) *LLMClient {
 
 // ChatRequest represents the request payload.
 type ChatRequest struct {
-	Model            string          `json:"model"`
-	Messages         []Message       `json:"messages"`
-	ResponseFormat   *ResponseFormat `json:"response_format,omitempty"`
-	Temperature      *float64        `json:"temperature,omitempty"`
-	MaxTokens        *int            `json:"max_tokens,omitempty"`
-	TopP             *float64        `json:"top_p,omitempty"`
-	Stream           bool            `json:"stream,omitempty"`
-	NumChoices       *int            `json:"n,omitempty"`
-	RepetitionPenalty *float64       `json:"repetition_penalty,omitempty"`
-	Stop             []string        `json:"stop,omitempty"`
+	Model             string          `json:"model"`
+	Messages          []Message       `json:"messages"`
+	ResponseFormat    *ResponseFormat `json:"response_format,omitempty"`
+	Temperature       *float64        `json:"temperature,omitempty"`
+	MaxTokens         *int            `json:"max_tokens,omitempty"`
+	TopP              *float64        `json:"top_p,omitempty"`
+	Stream            bool            `json:"stream,omitempty"`
+	NumChoices        *int            `json:"n,omitempty"`
+	RepetitionPenalty *float64        `json:"repetition_penalty,omitempty"`
+	Stop              []string        `json:"stop,omitempty"`
 }
 
 // ResponseFormat defines the format of the response.

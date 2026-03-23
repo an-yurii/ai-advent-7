@@ -12,10 +12,11 @@ import (
 func main() {
 	// Common flags
 	prompt := flag.String("p", "", "Prompt to send to LLM")
-	model := flag.String("m", "", "Model to use (default based on API)")
+	model := flag.String("m", "", "Model to use (default: gpt-3.5-turbo for OpenAI, GigaChat for GigaChat). Supported GigaChat models: GigaChat, GigaChat‑Pro, GigaChat‑Max (check documentation)")
 	apiKey := flag.String("k", "", "API key (default from environment)")
 	baseURL := flag.String("u", "", "API base URL (default based on API)")
 	apiProvider := flag.String("a", "openai", "API provider: openai, gigachat")
+	listModels := flag.Bool("list-models", false, "List known models for each provider and exit")
 
 	// Formatting flags
 	systemPrompt := flag.String("system", "", "System prompt to set behavior/format")
@@ -35,6 +36,12 @@ func main() {
 	tokenURL := flag.String("token-url", "https://ngw.devices.sberbank.ru:9443/api/v2/oauth", "OAuth2 token endpoint URL")
 
 	flag.Parse()
+
+	// If list-models mode, print known models and exit
+	if *listModels {
+		printKnownModels()
+		return
+	}
 
 	// If get-token mode, retrieve token and exit
 	if *getToken {
@@ -167,6 +174,16 @@ func printUsage() {
 	fmt.Println("  GIGACHAT_CLIENT_SECRET Client secret for GigaChat OAuth (optional)")
 	fmt.Println("\nToken retrieval:")
 	fmt.Println("  llm-api-client -get-token -client-id <id> -client-secret <secret>")
+}
+
+// printKnownModels prints known models for each supported API provider.
+func printKnownModels() {
+	fmt.Println("Known models per provider:")
+	fmt.Println("OpenAI:")
+	fmt.Println("  gpt-3.5-turbo, gpt-4, gpt-4-turbo, gpt-4o, etc.")
+	fmt.Println("GigaChat:")
+	fmt.Println("  GigaChat (default), GigaChat‑Pro, GigaChat‑Max")
+	fmt.Println("Note: Model availability may depend on your API access.")
 }
 
 // readFileContent reads the entire content of a file and returns it as a string.
